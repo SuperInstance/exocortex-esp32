@@ -35,7 +35,7 @@ unsigned long lastSense = 0;
 // TMP36-style: 0-3.3V → 0-4095 ADC
 float readTemperature() {
   int raw = analogRead(TEMP_PIN);
-  float voltage = raw * (3.3 / 4096.0);
+  float voltage = raw * (3.3 / 4095.0);
   // TMP36: 500mV = 0°C, 10mV/°C
   float tempC = (voltage - 0.5) * 100.0;
   return tempC;
