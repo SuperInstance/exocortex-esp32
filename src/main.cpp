@@ -116,7 +116,7 @@ String recallMemory(const String& query) {
 String predict(const String& sensor, float reading) {
   char urlBuf[256];
   snprintf(urlBuf, sizeof(urlBuf), "%s/tap/predict?sensor=%s&reading=%.2f", cortexUrl,
-           sensor.c_str(), reading);
+           urlEncode(sensor.c_str()).c_str(), reading);
   http.begin(client, urlBuf);
   http.setTimeout(5000);
 
