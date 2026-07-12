@@ -5,6 +5,8 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
+#include "encoding.h"
+
 // --- Configuration ---
 // Override with build flags: -DWIFI_SSID=\"xxx\" -DWIFI_PASS=\"xxx\"
 // -DCORTEX_URL=\"http://host:port\"
@@ -92,27 +94,9 @@ void postSense(float temp, float humidity, int zone) {
   http.end();
 }
 
-// Simple URL encoding for query strings
-String urlEncode(const String& str) {
-  String encoded = "";
-  for (unsigned int i = 0; i < str.length(); i++) {
-    char c = str.charAt(i);
-    if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
-      encoded += c;
-    } else if (c == ' ') {
-      encoded += '+';
-    } else {
-      char hex[4];
-      snprintf(hex, sizeof(hex), "%%%02X", (unsigned char)c);
-      encoded += hex;
-    }
-  }
-  return encoded;
-}
-
 // --- GET /tap/recall?q=... ---
 String recallMemory(const String& query) {
-  String url = String(cortexUrl) + "/tap/recall?q=" + urlEncode(query);
+  String url = String(cortexUrl) + "/tap/recall?q=" + urlEncode(query.c_str()).c_str();
   http.begin(client, url);
   http.setTimeout(5000);
 

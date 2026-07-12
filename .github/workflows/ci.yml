@@ -15,6 +15,12 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
       - name: Formatter check
-        run: clang-format --dry-run --Werror src/main.cpp
+        run: |
+          clang-format --dry-run --Werror \
+            src/main.cpp \
+            src/encoding.h \
+            test/test_native/test_encoding.cpp
+      - name: Run native unit tests
+        run: pio test -e native
       - name: Build firmware
-        run: pio run
+        run: pio run -e esp32dev
