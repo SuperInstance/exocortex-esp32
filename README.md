@@ -83,11 +83,12 @@ pio device monitor
 
 CI runs on every push/PR to `main`/`master`:
 
-- `clang-format --dry-run --Werror src/main.cpp`
-- `pio run`
+- `clang-format --dry-run --Werror src/main.cpp src/encoding.h test/test_native/test_encoding.cpp`
+- `pio test -e native`
+- `pio run -e esp32dev`
 
 The previous workflow was a no-op placeholder that always passed; it now
-actually builds the firmware.
+runs the formatter, native unit tests, and a real firmware build.
 
 ## Size
 
