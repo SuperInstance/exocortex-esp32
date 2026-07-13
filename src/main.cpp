@@ -5,8 +5,11 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
+#include "encoding.h"
+
 // --- Configuration ---
-// Override with build flags: -DWIFI_SSID=\"xxx\" -DWIFI_PASS=\"xxx\" -DCORTEX_URL=\"http://host:port\"
+// Override with build flags: -DWIFI_SSID=\"xxx\" -DWIFI_PASS=\"xxx\"
+// -DCORTEX_URL=\"http://host:port\"
 #ifndef WIFI_SSID
 #define WIFI_SSID "YOUR_SSID"
 #endif
@@ -17,9 +20,9 @@
 #define CORTEX_URL "http://192.168.1.100:9000"
 #endif
 
-#define TEMP_PIN A0       // Temperature sensor (analog)
-#define MOIST_PIN A1      // Moisture sensor (analog)
-#define SENSE_INTERVAL 30000  // 30 seconds
+#define TEMP_PIN 36          // Temperature sensor (ADC1_CH0 / GPIO36)
+#define MOIST_PIN 34         // Moisture sensor (ADC1_CH6 / GPIO34)
+#define SENSE_INTERVAL 30000 // 30 seconds
 #define MAX_RESPONSE 512
 
 const char* ssid = WIFI_SSID;
@@ -34,7 +37,7 @@ unsigned long lastSense = 0;
 // TMP36-style: 0-3.3V → 0-4095 ADC
 float readTemperature() {
   int raw = analogRead(TEMP_PIN);
-  float voltage = raw * (3.3 / 4096.0);
+  float voltage = raw * (3.3 / 4095.0);
   // TMP36: 500mV = 0°C, 10mV/°C
   float tempC = (voltage - 0.5) * 100.0;
   return tempC;
@@ -49,7 +52,8 @@ float readMoisture() {
 
 // --- WiFi ---
 void connectWiFi() {
-  if (WiFi.status() == WL_CONNECTED) return;
+  if (WiFi.status() == WL_CONNECTED)
+    return;
 
   Serial.print("Connecting to ");
   Serial.println(ssid);
@@ -92,7 +96,7 @@ void postSense(float temp, float humidity, int zone) {
 
 // --- GET /tap/recall?q=... ---
 String recallMemory(const String& query) {
-  String url = String(cortexUrl) + "/tap/recall?q=" + urlEncode(query);
+  String url = String(cortexUrl) + "/tap/recall?q=" + urlEncode(query.c_str()).c_str();
   http.begin(client, url);
   http.setTimeout(5000);
 
@@ -111,8 +115,8 @@ String recallMemory(const String& query) {
 // --- GET /tap/predict?sensor=...&reading=... ---
 String predict(const String& sensor, float reading) {
   char urlBuf[256];
-  snprintf(urlBuf, sizeof(urlBuf), "%s/tap/predict?sensor=%s&reading=%.2f",
-           cortexUrl, sensor.c_str(), reading);
+  snprintf(urlBuf, sizeof(urlBuf), "%s/tap/predict?sensor=%s&reading=%.2f", cortexUrl,
+           urlEncode(sensor.c_str()).c_str(), reading);
   http.begin(client, urlBuf);
   http.setTimeout(5000);
 
@@ -126,24 +130,6 @@ String predict(const String& sensor, float reading) {
   }
   http.end();
   return result;
-}
-
-// Simple URL encoding for query strings
-String urlEncode(const String& str) {
-  String encoded = "";
-  for (unsigned int i = 0; i < str.length(); i++) {
-    char c = str.charAt(i);
-    if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
-      encoded += c;
-    } else if (c == ' ') {
-      encoded += '+';
-    } else {
-      char hex[4];
-      snprintf(hex, sizeof(hex), "%%%02X", (unsigned char)c);
-      encoded += hex;
-    }
-  }
-  return encoded;
 }
 
 // --- Demo: run recall + predict on boot ---

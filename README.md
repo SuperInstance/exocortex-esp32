@@ -4,30 +4,33 @@ An Arduino/PlatformIO sketch for ESP32 that reads analog sensors and communicate
 
 ## Features
 
-- **Sense**: Reads temperature (A0) and soil moisture (A1), POSTs to `/tap/sense` every 30s
+- **Sense**: Reads temperature (GPIO36) and soil moisture (GPIO34), POSTs to `/tap/sense` every 30s
 - **Recall**: GETs `/tap/recall?q=<query>` to retrieve stored memories
 - **Predict**: GETs `/tap/predict?sensor=<name>&reading=<value>` for predictions
 - Plain-text protocol (no JSON parsing needed on the microcontroller)
 
 ## Wiring
 
+Defaults use ADC1 pins on a typical ESP32 dev board. Change `TEMP_PIN` and
+`MOIST_PIN` in `src/main.cpp` if your board differs.
+
 ```
 ESP32          Sensor
 ─────          ──────
-A0  ←───────  TMP36 Vout (middle pin)
-A1  ←───────  Capacitive Soil Moisture (AOUT)
-3V3 ───────→  Both sensor VCC
-GND ───────→  Both sensor GND
+GPIO36  ←────  TMP36 Vout (middle pin)
+GPIO34  ←────  Capacitive Soil Moisture (AOUT)
+3V3     ────→  Both sensor VCC
+GND     ────→  Both sensor GND
 
 TMP36 pinout (flat side facing you):
   Left: VCC (3.3V)
-  Middle: Vout → A0
+  Middle: Vout → GPIO36
   Right: GND
 
 Capacitive Soil Moisture:
   VCC → 3.3V
   GND → GND
-  AOUT → A1
+  AOUT → GPIO34
 ```
 
 ## Configuration
@@ -76,6 +79,27 @@ pio device monitor
 ### GET /tap/predict?sensor=x&reading=1.0
 **Response** (text/plain): predicted value
 
-## Size Target
+## Continuous Integration
 
-Under 20KB compiled. Uses only WiFi and HTTPClient from the ESP32 SDK — no JSON libraries needed.
+CI runs on every push/PR to `main`/`master`:
+
+- `clang-format --dry-run --Werror src/main.cpp src/encoding.h test/test_native/test_encoding.cpp`
+- `pio test -e native`
+- `pio run -e esp32dev`
+
+The previous workflow was a no-op placeholder that always passed; it now
+runs the formatter, native unit tests, and a real firmware build.
+
+## Size
+
+> ⚠️ The previous README claimed "under 20KB compiled"; that was incorrect.
+> The ESP32 Arduino framework + WiFi/HTTPClient produce a much larger image.
+
+Observed build footprint (release build, `esp32dev`):
+
+- Flash: ~800 KB
+- RAM: ~46 KB
+
+The application sketch itself is small; most of the footprint is the
+ESP32 Arduino core, WiFi, and HTTPClient libraries. No external JSON
+libraries are required.
